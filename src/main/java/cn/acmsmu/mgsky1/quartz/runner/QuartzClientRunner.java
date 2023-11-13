@@ -1,12 +1,11 @@
 package cn.acmsmu.mgsky1.quartz.runner;
 
-import java.io.File;
 import java.lang.reflect.Method;
-import java.net.URLDecoder;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import javax.annotation.PreDestroy;
 
@@ -110,30 +109,10 @@ public class QuartzClientRunner implements ApplicationRunner {
 
         List<QuartzHttpInvokerModel> quartzHttpInvokerModels = new ArrayList<>();
 
-        // code by GPT-3.5
-        // 将包名转换为文件路径
-        String packagePath = packageName.replace(".", File.separator);
-        // 获取类加载器
-        ClassLoader classLoader = ClassScanner.class.getClassLoader();
         try {
-            // 使用类加载器获取指定路径下的资源
-            String path = classLoader.getResource(packagePath).getPath();
-            File packageDir = new File(URLDecoder.decode(path, "utf-8"));
-
-            if (packageDir.listFiles().length == 0) {
-                return quartzHttpInvokerModels;
-            }
-
-            // 遍历目录下的文件和子目录
-            for (File file : packageDir.listFiles()) {
-                // 如果是文件，且以 ".class" 结尾，则是类文件
-                if (file.isFile() && file.getName().endsWith(".class")) {
-                    // 获取类名
-                    String className = packageName + "." + file.getName().substring(0, file.getName().length() - 6);
-
-                    // 使用类加载器加载类
-                    Class<?> clazz = Class.forName(className);
-                    // code by Martin Huang
+            Set<Class<?>> classes = ClassScanner.scanPackage(packageName);
+            if (CollUtil.isNotEmpty(classes)) {
+                for (Class clazz : classes) {
                     List<QuartzHttpInvokerModel> mList = getTargetInvokerModel(clazz);
                     if (CollUtil.isNotEmpty(mList)) {
                         quartzHttpInvokerModels.addAll(mList);
